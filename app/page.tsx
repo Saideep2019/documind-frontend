@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { supabase } from "@/lib/supabase";
+
 
 type Source = {
   text: string;
@@ -87,6 +89,9 @@ export default function Home() {
     setShowBack]
     = useState(false);
 
+  const [userId, setUserId] = useState("");
+
+
 
 
 
@@ -96,12 +101,12 @@ export default function Home() {
   // -----------------------------
   // Fetch Uploaded PDFs
   // -----------------------------
-  const fetchDocuments = async () => {
+  const fetchDocuments = async (currentUserId: string) => {
 
     try {
 
       const response = await fetch(
-        "http://127.0.0.1:8000/documents"
+        `http://127.0.0.1:8000/documents?user_id=${currentUserId}`
       );
 
       const data = await response.json();
@@ -184,6 +189,7 @@ export default function Home() {
           body: JSON.stringify({
             document:
               selectedDocument,
+            user_id: userId,
           }),
         }
       );
@@ -218,7 +224,7 @@ export default function Home() {
   const activeConversation = conversations.find(
     (c) => c.id === activeChatId
   );
-
+  console.log("Active Conversation:", activeConversation);
 
   const deleteConversation = (id: string) => {
 
@@ -241,32 +247,82 @@ export default function Home() {
   // -----------------------------
   // Load Documents on Startup
   // -----------------------------
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("conversations");
-
-    if (saved) {
-      const parsed = JSON.parse(saved);
-
-      setConversations(parsed);
-
-      if (parsed.length > 0) {
-        setActiveChatId(parsed[0].id);
-      }
-    }
-  }, []);
 
 
   useEffect(() => {
+
+    if (!userId) return;
+
     localStorage.setItem(
-      "conversations",
+      `conversations-${userId}`,
       JSON.stringify(conversations)
     );
-  }, [conversations]);
 
+  }, [conversations, userId]);
+
+
+  useEffect(() => {
+
+    const getUser = async () => {
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+
+        setUserId(user.id);
+
+        fetchDocuments(user.id);
+
+        const saved = localStorage.getItem(
+          `conversations-${user.id}`
+        );
+
+        if (saved) {
+
+          const parsed = JSON.parse(saved);
+
+          if (parsed.length > 0) {
+
+            setConversations(parsed);
+            setActiveChatId(parsed[0].id);
+
+          } else {
+
+            const firstChat: Conversation = {
+              id: crypto.randomUUID(),
+              title: "New Chat",
+              messages: [],
+            };
+
+            setConversations([firstChat]);
+            setActiveChatId(firstChat.id);
+
+          }
+
+        } else {
+
+          const firstChat: Conversation = {
+            id: crypto.randomUUID(),
+            title: "New Chat",
+            messages: [],
+          };
+
+          setConversations([firstChat]);
+          setActiveChatId(firstChat.id);
+
+        }
+
+        console.log("Logged in user:", user.id);
+
+      }
+
+    };
+
+    getUser();
+
+  }, []);
 
 
   // -----------------------------
@@ -286,6 +342,8 @@ export default function Home() {
     const formData = new FormData();
 
     formData.append("file", file);
+
+    formData.append("user_id", userId);
 
     try {
 
@@ -309,7 +367,7 @@ export default function Home() {
           "PDF uploaded successfully!"
         );
 
-        fetchDocuments();
+        fetchDocuments(userId);
 
       } else {
 
@@ -341,7 +399,7 @@ export default function Home() {
     try {
 
       const response = await fetch(
-        `http://127.0.0.1:8000/documents/${filename}`,
+        `http://127.0.0.1:8000/documents/${filename}?user_id=${userId}`,
         {
           method: "DELETE",
         }
@@ -384,6 +442,7 @@ export default function Home() {
   // -----------------------------
   const askQuestion = async () => {
 
+
     if (!question.trim() || loading) return;
 
     const currentQuestion = question;
@@ -406,6 +465,11 @@ export default function Home() {
       currentQuestion.length > 35
         ? currentQuestion.slice(0, 35) + "..."
         : currentQuestion;
+
+
+    console.log("Active Chat ID:", activeChatId);
+    console.log("Conversations:", conversations);
+    console.log("Number of conversations:", conversations.length);
 
     setConversations((prev) =>
       prev.map((conv) =>
@@ -443,15 +507,17 @@ export default function Home() {
           body: JSON.stringify({
             question: currentQuestion,
             history,
-            selected_document:
-              selectedDocument,
+            selected_document: selectedDocument,
+            user_id: userId,
           }),
         }
       );
 
       const data = await response.json();
 
-      console.log(data);
+      console.log("Backend response:", data);
+      console.log("Active Chat ID:", activeChatId);
+      console.log("Conversations:", conversations);
 
       const aiMessage: Message = {
         role: "assistant",
@@ -523,8 +589,8 @@ export default function Home() {
         },
 
         body: JSON.stringify({
-          document:
-            selectedDocument,
+          document: selectedDocument,
+          user_id: userId,
         }),
       }
     );
@@ -603,6 +669,7 @@ export default function Home() {
           },
           body: JSON.stringify({
             document: selectedDocument,
+            user_id: userId,
           }),
         }
       );
@@ -1343,6 +1410,15 @@ export default function Home() {
                     selectedFile
                   );
 
+                  formData.append(
+                    "user_id",
+                    userId
+                  );
+
+
+
+
+
                   fetch(
                     "http://127.0.0.1:8000/upload",
                     {
@@ -1351,9 +1427,10 @@ export default function Home() {
                     }
                   )
                     .then(() =>
-                      fetchDocuments()
+                      fetchDocuments(userId)
                     )
                     .catch(console.error);
+
 
                 }}
               />
