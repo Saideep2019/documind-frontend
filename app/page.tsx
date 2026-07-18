@@ -106,7 +106,7 @@ export default function Home() {
     try {
 
       const response = await fetch(
-        `http://127.0.0.1:8000/documents?user_id=${currentUserId}`
+        `${process.env.NEXT_PUBLIC_API_URL}/documents?user_id=${currentUserId}`
       );
 
       const data = await response.json();
@@ -177,18 +177,16 @@ export default function Home() {
     try {
 
       const response = await fetch(
-        "http://127.0.0.1:8000/generate-flashcards",
+        `${process.env.NEXT_PUBLIC_API_URL}/generate-flashcards`,
         {
           method: "POST",
 
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
 
           body: JSON.stringify({
-            document:
-              selectedDocument,
+            document: selectedDocument,
             user_id: userId,
           }),
         }
@@ -202,14 +200,17 @@ export default function Home() {
       );
 
       console.log(data);
+      console.log("FLASHCARD DATA:", data);
+      console.log("FLASHCARDS ARRAY:", data.flashcards);
 
-      setFlashcards(
-        data.flashcards
-      );
+
+      setFlashcards(Array.isArray(data.flashcards) ? data.flashcards : []);
 
       setCurrentCard(0);
 
       setShowBack(false);
+
+      setActiveTab("chat");
 
     } catch (error) {
 
@@ -350,7 +351,7 @@ export default function Home() {
       setUploadMessage("Uploading PDF...");
 
       const response = await fetch(
-        "http://127.0.0.1:8000/upload",
+        `${process.env.NEXT_PUBLIC_API_URL}/upload`,
         {
           method: "POST",
           body: formData,
@@ -399,7 +400,7 @@ export default function Home() {
     try {
 
       const response = await fetch(
-        `http://127.0.0.1:8000/documents/${filename}?user_id=${userId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/documents/${filename}?user_id=${userId}`,
         {
           method: "DELETE",
         }
@@ -428,10 +429,6 @@ export default function Home() {
       console.error(error);
     }
   };
-
-
-
-
 
 
 
@@ -496,7 +493,7 @@ export default function Home() {
     try {
 
       const response = await fetch(
-        "http://127.0.0.1:8000/ask",
+        `${process.env.NEXT_PUBLIC_API_URL}/ask`,
         {
           method: "POST",
 
@@ -578,8 +575,8 @@ export default function Home() {
       return;
     }
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/generate-quiz",
+   const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/generate-quiz`,
       {
         method: "POST",
 
@@ -661,7 +658,7 @@ export default function Home() {
       setIsSummarizing(true);
 
       const response = await fetch(
-        "http://127.0.0.1:8000/summarize",
+        `${process.env.NEXT_PUBLIC_API_URL}/summarize`,
         {
           method: "POST",
           headers: {
@@ -1420,7 +1417,7 @@ export default function Home() {
 
 
                   fetch(
-                    "http://127.0.0.1:8000/upload",
+                      `${process.env.NEXT_PUBLIC_API_URL}/upload`,
                     {
                       method: "POST",
                       body: formData,
