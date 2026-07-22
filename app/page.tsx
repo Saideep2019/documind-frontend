@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+
 
 
 type Source = {
@@ -90,11 +92,7 @@ export default function Home() {
     = useState(false);
 
   const [userId, setUserId] = useState("");
-
-
-
-
-
+  const router = useRouter();
 
 
 
@@ -575,8 +573,8 @@ export default function Home() {
       return;
     }
 
-   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/generate-quiz`,
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/generate-quiz`,
       {
         method: "POST",
 
@@ -725,6 +723,11 @@ export default function Home() {
       setIsSummarizing(false);
 
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
   };
 
 
@@ -879,17 +882,33 @@ export default function Home() {
 
       <div className="flex-1 p-8 overflow-auto">
 
-        <div className="text-center mb-10">
+        <div className="flex justify-between items-start mb-10">
 
-          <h1 className="text-6xl font-extrabold text-white mb-2">
-            DocuMind
-          </h1>
-          <p className="text-white/80 text-lg">
-            Upload documents. Ask questions. Get answers.
-          </p>
+          <div>
+            <h1 className="text-6xl font-extrabold text-white mb-2">
+              DocuMind
+            </h1>
 
+            <p className="text-white/80 text-lg">
+              Upload documents. Ask questions. Get answers.
+            </p>
+          </div>
 
-
+          <button
+            onClick={handleLogout}
+            className="
+      bg-red-500
+      hover:bg-red-600
+      text-white
+      px-5
+      py-2
+      rounded-xl
+      font-semibold
+      transition
+    "
+          >
+            Logout
+          </button>
 
         </div>
 
@@ -1417,7 +1436,7 @@ export default function Home() {
 
 
                   fetch(
-                      `${process.env.NEXT_PUBLIC_API_URL}/upload`,
+                    `${process.env.NEXT_PUBLIC_API_URL}/upload`,
                     {
                       method: "POST",
                       body: formData,
